@@ -8,7 +8,7 @@ void dmm_fault(void);
 
 #define vmx_asm1(insn, op1, error_args...)                              \
 do {                                                                    \
-        asm_volatile_goto("1: " __stringify(insn) " %0\n\t"             \
+        asm goto ("1: " __stringify(insn) " %0\n\t"             \
                           ".byte 0x2e\n\t" /* branch not taken hint */  \
                           "jna %l[error]\n\t"                           \
                           _ASM_EXTABLE(1b, %l[fault])                   \

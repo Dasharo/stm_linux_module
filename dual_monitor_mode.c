@@ -48,13 +48,13 @@
 #include <asm/vmx.h>
 #include <asm/kvm_host.h>
 #include <asm/uaccess.h>
-#include <asm/virtext.h>
 #include "vmx.h"
 
 #include "vmx_ops.h"
 
 MODULE_LICENSE ("GPL");
 MODULE_SOFTDEP ("pre: kvm-intel");
+MODULE_DESCRIPTION("Dual Monitor Mode support with Intel STM");
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 extern struct kvm_x86_ops *kvm_x86_ops;
@@ -497,7 +497,7 @@ launch_stm (void *unused)
   vmcs_revision_id = msr_content & MSR_VMX_BASIC_VMCS_REVISION_MASK;
 
   /* check to see if vmx is enabled */
-  if (!cpu_vmx_enabled ())
+  if (!(__read_cr4() & X86_CR4_VMXE))
     {
       pr_err ("%d STM-LINUX: VMX is not enabled\n", cpu);
       smp_mb__before_atomic ();
