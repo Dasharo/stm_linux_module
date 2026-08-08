@@ -138,7 +138,7 @@ vmclear_error (struct vmcs *vmcs, u64 phys_addr)
     _rc; })
 
 /* from kvm */
-struct vmcs *
+static struct vmcs *
 alloc_vmcs_cpu (int cpu, gfp_t flags)
 {
   int node = cpu_to_node (cpu);
@@ -156,7 +156,7 @@ alloc_vmcs_cpu (int cpu, gfp_t flags)
   return vmcs;
 }
 
-struct vmcs *
+static struct vmcs *
 vmx_temp_vmcs (void)
 {
   int cpu = smp_processor_id ();
@@ -255,7 +255,7 @@ manage_vmcs_database (uint64_t vmcs_ptr, uint32_t add_remove)
  * Our sample policy profile implementation below is in synchronous with this
  * idea.
  */
-int
+static int
 protect_resources (void)
 {
   struct page *resource_list;
@@ -392,7 +392,7 @@ protect_resources (void)
 /*
  * Obtain the BIOS resource protection list
  */
-int
+static int
 get_bios_resource (void)
 {
   struct page *resource_list;
@@ -1140,7 +1140,7 @@ boot_stm (void)
 }
 
 static int
-stm_suspend (void)
+stm_suspend (void *unused)
 {
   struct notifier_block *notifier = NULL;
   unsigned long val = 0;
@@ -1152,7 +1152,7 @@ stm_suspend (void)
 }
 
 static void
-stm_resume (void)
+stm_resume (void *unused)
 {
   // this is necessary because in the case of hibernate
   // the cpus get shutdown before the STM can be suspended
@@ -1169,6 +1169,10 @@ stm_resume (void)
 static struct syscore_ops stm_syscore_ops = {
   .suspend = stm_suspend,
   .resume = stm_resume,
+};
+
+static struct syscore stm_syscore = {
+	.ops = &stm_syscore_ops,
 };
 
 static int __init
@@ -1202,7 +1206,7 @@ start_stm (void)
 
   register_reboot_notifier (&stm_reboot_notifier);
 
-  register_syscore_ops (&stm_syscore_ops);
+  register_syscore (&stm_syscore);
 
   register_pm_notifier (&stm_notifier_block);
 
