@@ -1,32 +1,51 @@
 diff --git a/include/uapi/linux/kvm.h b/include/uapi/linux/kvm.h
-index ca41220..7d5e795 100644
+index 3f0d8d3c3daf..295cf0dcebaa 100644
 --- a/include/uapi/linux/kvm.h
 +++ b/include/uapi/linux/kvm.h
-@@ -825,6 +825,10 @@ struct kvm_ppc_resize_hpt {
+@@ -710,6 +710,10 @@ struct kvm_enable_cap {
  #define KVM_GET_API_VERSION       _IO(KVMIO,   0x00)
  #define KVM_CREATE_VM             _IO(KVMIO,   0x01) /* returns a VM fd */
  #define KVM_GET_MSR_INDEX_LIST    _IOWR(KVMIO, 0x02, struct kvm_msr_list)
 +/* Bumps the KVM usage count for the STM */
-+#define KVM_BUMP_USAGE_COUNT	  _IO(KVMIO,   0x20)
++#define KVM_BUMP_USAGE_COUNT      _IO(KVMIO, 0x20)
 +/* Decrements the KVM usage count for STM breakdown */
-+#define KVM_DEC_USAGE_COUNT	  _IO(KVMIO,   0x21)
++#define KVM_DEC_USAGE_COUNT       _IO(KVMIO, 0x21)
  
  #define KVM_S390_ENABLE_SIE       _IO(KVMIO,   0x06)
  /*
 diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index 9cd8ca2..77b82a1 100644
+index 9093251beb39..979391b08fa6 100644
 --- a/virt/kvm/kvm_main.c
 +++ b/virt/kvm/kvm_main.c
-@@ -4058,6 +4058,12 @@ static long kvm_dev_ioctl(struct file *filp,
+@@ -5151,6 +5151,8 @@ do {										\
+ 		     sizeof_field(struct kvm_userspace_memory_region2, field));	\
+ } while (0)
+ 
++static int kvm_usage_count;
++
+ static long kvm_vm_ioctl(struct file *filp,
+ 			   unsigned int ioctl, unsigned long arg)
+ {
+@@ -5365,6 +5367,14 @@ static long kvm_vm_ioctl(struct file *filp,
  	case KVM_CHECK_EXTENSION:
- 		r = kvm_vm_ioctl_check_extension_generic(NULL, arg);
+ 		r = kvm_vm_ioctl_check_extension_generic(kvm, arg);
  		break;
 +	case KVM_BUMP_USAGE_COUNT:
 +		kvm_usage_count++;
++		r = 0;
 +		break;
 +	case KVM_DEC_USAGE_COUNT:
 +		kvm_usage_count--;
++		r = 0;
 +		break;
- 	case KVM_GET_VCPU_MMAP_SIZE:
- 		if (arg)
- 			goto out;
+ 	case KVM_RESET_DIRTY_RINGS:
+ 		r = kvm_vm_ioctl_reset_dirty_pages(kvm);
+ 		break;
+@@ -5583,7 +5593,6 @@ EXPORT_SYMBOL_FOR_KVM_INTERNAL(kvm_rebooting);
+ 
+ static DEFINE_PER_CPU(bool, virtualization_enabled);
+ static DEFINE_MUTEX(kvm_usage_lock);
+-static int kvm_usage_count;
+ 
+ __weak void kvm_arch_enable_virtualization(void)
+ {
